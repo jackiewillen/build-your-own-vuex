@@ -9,7 +9,7 @@
 export default {
   name: 'app',
   created() {
-    console.log('打印出this.$store.state.count的结果',this.$store.state.count);
+    console.log('打印出this.$store.getters.getStatePlusOne的结果',this.$store.getters.getStatePlusOne);
   },
 }
 </script>
