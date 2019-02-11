@@ -1,16 +1,43 @@
 export class Store {
     constructor(options = {}, Vue) {
+        Vue.mixin({ beforeCreate: vuexInit })
         this.options = options;
-        this.getters = {}
-        Vue.mixin({ beforeCreate: vuexInit });
+        this.getters = {};
+        this.mutations = {};
+        const { commit } = this;
+        this.commit = (type) => {
+            return commit.call(this, type);
+        }
         forEachValue(options.getters, (getterFn, getterName) => {
             registerGetter(this, getterName, getterFn);
-        })
+        });
+
+        forEachValue(options.mutations, (mutationFn, mutationName) => {
+            registerMutation(this, mutationName, mutationFn)
+        });
+
+        this._vm = new Vue({
+            data: {
+                state: options.state
+            }
+        });
     }
+
     get state() {
-        return this.options.state;
+        // return this.options.state; // 无法完成页面中的双向绑定，所以改用this._vm的形式
+        return this._vm._data.state;
+    }
+    commit(type) {
+        this.mutations[type]();
     }
 }
+
+function registerMutation(store, mutationName, mutationFn) {
+    store.mutations[mutationName] = () => {
+        mutationFn.call(store, store.state);
+    }
+}
+
 
 function registerGetter(store, getterName, getterFn) {
     Object.defineProperty(store.getters, getterName, {
