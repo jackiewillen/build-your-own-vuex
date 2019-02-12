@@ -10,6 +10,6 @@ const store = new Vuex.Store({
 通过this.$store.state.count可以直接使用 done 
 3.vuex中的getter方法的实现 done
 4.mutation和commit方法的实现 done
-5.actions和dispatch方法的实现
+5.actions和dispatch方法的实现 done 
 7.module方法的实现
 8.完成install，可以通过Vue.use(Vuex)来使用自己实现的vuex，从而完成高仿真模拟 done 

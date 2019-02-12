@@ -7,10 +7,18 @@ let store = new Vuex.Store({
     state: {
         count: 0
     },
+    actions: {
+        countPlusSix(context) {
+            context.commit('plusSix');
+        }
+    },
     mutations: {
         incrementFive(state) {
             // console.log('初始state', JSON.stringify(state));
             state.count = state.count + 5;
+        },
+        plusSix(state) {
+            state.count = state.count + 6;
         }
     },
     getters: {

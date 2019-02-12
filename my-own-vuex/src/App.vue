@@ -16,6 +16,10 @@ export default {
       this.$store.commit('incrementFive');
       console.log('store state自增5后的结果', this.$store.state.count);
     }, 2000);
+    setTimeout(() => {
+      this.$store.dispatch('countPlusSix');
+      console.log('store dispatch自增6后的结果', this.$store.state.count);
+    }, 3000);
   },
   computed: {
     count() {

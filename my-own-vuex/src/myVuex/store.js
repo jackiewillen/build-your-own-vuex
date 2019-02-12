@@ -4,10 +4,18 @@ export class Store {
         this.options = options;
         this.getters = {};
         this.mutations = {};
-        const { commit } = this;
+        this.actions = {};
+        const { dispatch, commit } = this;
         this.commit = (type) => {
             return commit.call(this, type);
         }
+        this.dispatch = (type) => {
+            return dispatch.call(this, type);
+        }
+        forEachValue(options.actions, (actionFn, actionName) => {
+            registerAction(this, actionName, actionFn);
+        });
+
         forEachValue(options.getters, (getterFn, getterName) => {
             registerGetter(this, getterName, getterFn);
         });
@@ -30,6 +38,9 @@ export class Store {
     commit(type) {
         this.mutations[type]();
     }
+    dispatch(type) {
+        return this.actions[type]();
+    }
 }
 
 function registerMutation(store, mutationName, mutationFn) {
@@ -38,6 +49,11 @@ function registerMutation(store, mutationName, mutationFn) {
     }
 }
 
+function registerAction(store, actionName, actionFn) {
+    store.actions[actionName] = () => {
+        actionFn.call(store, store)
+    }
+}
 
 function registerGetter(store, getterName, getterFn) {
     Object.defineProperty(store.getters, getterName, {
