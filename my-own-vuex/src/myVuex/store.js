@@ -1,8 +1,6 @@
-let _Vue;
+let Vue;
 export class Store {
-    constructor(options = {}, Vue) {
-        _Vue = Vue
-        Vue.mixin({ beforeCreate: vuexInit })
+    constructor(options = {}) {
         this.getters = {};
         this._mutations = {}; // 在私有属性前加_
         this._wrappedGetters = {};
@@ -17,12 +15,13 @@ export class Store {
         }
         const state = options.state;
         const path = []; // 初始路径给根路径为空
-        installModule(this, state, path, this._modules.root);
         this._vm = new Vue({
             data: {
                 state: state
             }
         });
+        installModule(this, state, path, this._modules.root);
+
     }
 
     get state() {
@@ -67,7 +66,7 @@ function installModule(store, rootState, path, module) {
     if (path.length > 0) {
         const parentState = rootState;
         const moduleName = path[path.length - 1];
-        _Vue.set(parentState, moduleName, module.state)
+        Vue.set(parentState, moduleName, module.state)
     }
     const context = {
         dispatch: store.dispatch,
@@ -139,18 +138,16 @@ function forEachValue(obj, fn) {
     Object.keys(obj).forEach(key => fn(obj[key], key));
 }
 
-function vuexInit() {
-    const options = this.$options
-    if (options.store) {
-        // 组件内部设定了store,则优先使用组件内部的store
-        this.$store = typeof options.store === 'function' ?
-            options.store() :
-            options.store
-    } else if (options.parent && options.parent.$store) {
-        // 组件内部没有设定store,则从根App.vue下继承$store方法
-        this.$store = options.parent.$store
-    }
-}
-export function install() {
-
+export function install(_Vue) {
+    Vue = _Vue;
+    Vue.mixin({
+        beforeCreate: function vuexInit() {
+            const options = this.$options;
+            if (options.store) {
+                this.$store = options.store;
+            } else if (options.parent && options.parent.$store) {
+                this.$store = options.parent.$store;
+            }
+        }
+    })
 }

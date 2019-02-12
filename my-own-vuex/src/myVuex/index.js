@@ -1,4 +1,5 @@
-import {Store} from './store';
-export default{
-    Store
+import { Store, install } from './store';
+export default {
+    Store,
+    install
 }

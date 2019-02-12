@@ -2,6 +2,8 @@ import Vue from 'vue'
 import App from './App.vue'
 import Vuex from './myVuex/index'
 
+Vue.use(Vuex);
+
 const pageA = {
     state: {
         count: 100
@@ -45,7 +47,7 @@ let store = new Vuex.Store({
         }
     }
 
-}, Vue);
+});
 
 new Vue({
     store,
