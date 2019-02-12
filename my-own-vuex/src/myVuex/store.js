@@ -1,10 +1,13 @@
+let _Vue;
 export class Store {
     constructor(options = {}, Vue) {
+        _Vue = Vue
         Vue.mixin({ beforeCreate: vuexInit })
-        this.options = options;
         this.getters = {};
-        this.mutations = {};
-        this.actions = {};
+        this._mutations = {}; // 在私有属性前加_
+        this._wrappedGetters = {};
+        this._actions = {};
+        this._modules = new ModuleCollection(options)
         const { dispatch, commit } = this;
         this.commit = (type) => {
             return commit.call(this, type);
@@ -12,21 +15,12 @@ export class Store {
         this.dispatch = (type) => {
             return dispatch.call(this, type);
         }
-        forEachValue(options.actions, (actionFn, actionName) => {
-            registerAction(this, actionName, actionFn);
-        });
-
-        forEachValue(options.getters, (getterFn, getterName) => {
-            registerGetter(this, getterName, getterFn);
-        });
-
-        forEachValue(options.mutations, (mutationFn, mutationName) => {
-            registerMutation(this, mutationName, mutationFn)
-        });
-
+        const state = options.state;
+        const path = []; // 初始路径给根路径为空
+        installModule(this, state, path, this._modules.root);
         this._vm = new Vue({
             data: {
-                state: options.state
+                state: state
             }
         });
     }
@@ -36,29 +30,106 @@ export class Store {
         return this._vm._data.state;
     }
     commit(type) {
-        this.mutations[type]();
+        this._mutations[type].forEach(handler => handler());
     }
     dispatch(type) {
-        return this.actions[type]();
+        return this._actions[type][0]();
     }
 }
 
-function registerMutation(store, mutationName, mutationFn) {
-    store.mutations[mutationName] = () => {
-        mutationFn.call(store, store.state);
+class ModuleCollection {
+    constructor(rawRootModule) {
+        this.register([], rawRootModule)
+    }
+    register(path, rawModule) {
+        const newModule = {
+            _children: {},
+            _rawModule: rawModule,
+            state: rawModule.state
+        }
+        if (path.length === 0) {
+            this.root = newModule;
+        } else {
+            const parent = path.slice(0, -1).reduce((module, key) => {
+                return module._children(key);
+            }, this.root);
+            parent._children[path[path.length - 1]] = newModule;
+        }
+        if (rawModule.modules) {
+            forEachValue(rawModule.modules, (rawChildModule, key) => {
+                this.register(path.concat(key), rawChildModule);
+            })
+        }
     }
 }
 
-function registerAction(store, actionName, actionFn) {
-    store.actions[actionName] = () => {
-        actionFn.call(store, store)
+function installModule(store, rootState, path, module) {
+    if (path.length > 0) {
+        const parentState = rootState;
+        const moduleName = path[path.length - 1];
+        _Vue.set(parentState, moduleName, module.state)
     }
+    const context = {
+        dispatch: store.dispatch,
+        commit: store.commit,
+    }
+    const local = Object.defineProperties(context, {
+        getters: {
+            get: () => store.getters
+        },
+        state: {
+            get: () => {
+                let state = store.state;
+                return path.length ? path.reduce((state, key) => state[key], state) : state
+            }
+        }
+    })
+    if (module._rawModule.actions) {
+        forEachValue(module._rawModule.actions, (actionFn, actionName) => {
+            registerAction(store, actionName, actionFn, local);
+        });
+    }
+    if (module._rawModule.getters) {
+        forEachValue(module._rawModule.getters, (getterFn, getterName) => {
+            registerGetter(store, getterName, getterFn, local);
+        });
+    }
+    if (module._rawModule.mutations) {
+        forEachValue(module._rawModule.mutations, (mutationFn, mutationName) => {
+            registerMutation(store, mutationName, mutationFn, local)
+        });
+    }
+    forEachValue(module._children, (child, key) => {
+        installModule(store, rootState, path.concat(key), child)
+    })
+
 }
 
-function registerGetter(store, getterName, getterFn) {
+function registerMutation(store, mutationName, mutationFn, local) {
+    const entry = store._mutations[mutationName] || (store._mutations[mutationName] = []);
+    entry.push(() => {
+        mutationFn.call(store, local.state);
+    });
+}
+
+function registerAction(store, actionName, actionFn, local) {
+    const entry = store._actions[actionName] || (store._actions[actionName] = [])
+    entry.push(() => {
+        return actionFn.call(store, {
+            commit: local.commit,
+            state: local.state,
+        })
+    });
+}
+
+function registerGetter(store, getterName, getterFn, local) {
     Object.defineProperty(store.getters, getterName, {
         get: () => {
-            return getterFn(store.state)
+            return getterFn(
+                local.state,
+                local.getters,
+                store.state
+            )
         }
     })
 }

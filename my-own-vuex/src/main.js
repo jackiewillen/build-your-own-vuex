@@ -2,8 +2,26 @@ import Vue from 'vue'
 import App from './App.vue'
 import Vuex from './myVuex/index'
 
+const pageA = {
+    state: {
+        count: 100
+    },
+    mutations: {
+        incrementA(state) {
+            state.count++;
+        }
+    },
+    actions: {
+        incrementAAction(context) {
+            context.commit('incrementA');
+        }
+    }
+}
 
 let store = new Vuex.Store({
+    modules: {
+        a: pageA
+    },
     state: {
         count: 0
     },
