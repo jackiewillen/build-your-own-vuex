@@ -1,3 +1,4 @@
+<h2>项目运行方法： 进入到my-own-vuex目录下，运行npm install 再运行npm run serve就可以了</h2>
 <h1>用150行代码实现Vuex 80%的功能</h1>
 
 <h3>作者： 殷荣桧@腾讯</h3>
